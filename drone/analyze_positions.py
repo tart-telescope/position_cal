@@ -173,4 +173,4 @@ if __name__=="__main__":
     # plt.plot(drone[:,0], drone[:,1], 'o', label='drone')
     plt.plot(final[:,0], final[:,1], 'o', label='drone')
     plt.plot(original[:,0], original[:,1], '.', label='original')
-    plt.show()
+    plt.savefig("matched_drone_pos.png")
