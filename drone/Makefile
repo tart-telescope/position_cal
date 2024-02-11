@@ -2,4 +2,4 @@ positions:
 	python3 process_image.py --pixels-per-meter 362.1
 
 analyze:
-	python3 analyze_positions.py
+	python3 analyze_positions.py --original original_antenna_positions.json

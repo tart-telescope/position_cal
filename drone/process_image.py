@@ -95,7 +95,7 @@ if __name__=="__main__":
     cv.imwrite('res.jpg',img_rgb)
     
     antennas = np.array(antennas)
-    antennas = antennas - np.mean(antennas)
+    antennas = antennas - np.mean(antennas, axis=0)
     
     result = []
     for a in antennas:
