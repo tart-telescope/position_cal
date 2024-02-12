@@ -22,21 +22,34 @@ def translate_all(v, delta):
 
 
 
+def find_closest(_p, ref):
+    ## Find closest point in ref to p
+    i_best = 0
+    x_p, y_p = _p
+    r_best = 9e99
+    for i, orig in enumerate(ref):
+        x_0, y_0 = orig
+        r2 = (x_p-x_0)**2 + (y_p-y_0)**2
+        if r2 < r_best:
+            r_best = r2
+            i_best = i
+    
+    return i_best, r_best
+    
 def best_permute(v, ref):
     ret = []
     for p in v:
-        ## Find closest point in ref to p
-        i_best = 0
-        x_p, y_p = p
-        r_best = 9e99
-        for i, orig in enumerate(ref):
-            x_0, y_0 = orig
-            r2 = (x_p-x_0)**2 + (y_p-y_0)**2
-            if r2 < r_best:
-                r_best = r2
-                i_best = i
+        i_best, r_best = find_closest(p, ref)
         ret.append(i_best)
     return ret
+
+
+def plot_pos(dr, orig):
+    plt.plot(dr[:,0], dr[:,1], 'x', label='drone')
+    plt.plot(orig[:,0], orig[:,1], '.', label='original')
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
 if __name__=="__main__":
     
@@ -62,15 +75,24 @@ if __name__=="__main__":
         help="Output file for matched antenna positions.",
     )
 
+    # Draw a line on gimp one meter long
+    parser.add_argument(
+        "--pixels-per-meter",
+        type=float,
+        required=True,
+        help="Number of pixels per meter.",
+    )
+
     ARGS = parser.parse_args()
 
     # Opening JSON file
     with open(ARGS.drone) as f:
-        drone = json.load(f)["antenna_positions"]
+        drone = json.load(f)["antenna_positions_pixels"]
         
         drone = np.array(drone)
         mu = np.mean(drone, axis=0)
-        drone = drone - mu
+        drone = (drone - mu)/ARGS.pixels_per_meter
+
         
     with open(ARGS.original) as f:
         original = json.load(f)
@@ -90,17 +112,7 @@ if __name__=="__main__":
         _drone_r = r_all(drone, np.radians(x_deg))
         
         for p in _drone_r:
-            ## Find closest point in original to p
-            i_best = 0
-            x_p, y_p = p
-            r_best = 9e99
-            for i, orig in enumerate(original):
-                x_0, y_0 = orig
-                r2 = (x_p-x_0)**2 + (y_p-y_0)**2
-                if r2 < r_best:
-                    r_best = r2
-                    i_best = i
-                    
+            i_best, r_best = find_closest(p, original)
             ret += r_best
             
         return ret
@@ -115,29 +127,17 @@ if __name__=="__main__":
 
     drone_r = r_all(drone, np.radians(angle))
     print(f"Angle between drone and original = {angle} degrees")
-    plt.plot(drone_r[:,0], drone_r[:,1], 'x', label='drone')
-    plt.plot(original[:,0], original[:,1], '.', label='original')
-    plt.show()
+    plot_pos(dr=drone_r, orig=original)
 
     
-    ## Find the translation that matches best
+    ## Find the translation that matches best to the rotated
     
     def t_min(_x):
         ret = 0.0
         _drone_t = translate_all(drone_r,_x)
         
         for p in _drone_t:
-            ## Find closest point in original to p
-            i_best = 0
-            x_p, y_p = p
-            r_best = 9e99
-            for i, orig in enumerate(original):
-                x_0, y_0 = orig
-                r2 = (x_p-x_0)**2 + (y_p-y_0)**2
-                if r2 < r_best:
-                    r_best = r2
-                    i_best = i
-                    
+            i_best, r_best = find_closest(p, original)
             ret += r_best
             
         return ret
@@ -152,10 +152,7 @@ if __name__=="__main__":
     translate = ret.x
     drone_t = translate_all(drone_r, translate)
     print(f"Translation between drone and original = {translate} degrees")
-    # plt.plot(drone[:,0], drone[:,1], 'o', label='drone')
-    plt.plot(drone_t[:,0], drone_t[:,1], 'x', label='drone')
-    plt.plot(original[:,0], original[:,1], '.', label='original')
-    plt.show()
+    plot_pos(dr=drone_t, orig=original)
 
     # Now find the permutation that matches
     p_best = best_permute(drone_t, r_all(original, -angle))
@@ -170,7 +167,5 @@ if __name__=="__main__":
         json.dump(out_json, fp, indent=4, separators=(",", ": "))
 
     final = np.array(final)
-    # plt.plot(drone[:,0], drone[:,1], 'o', label='drone')
-    plt.plot(final[:,0], final[:,1], 'o', label='drone')
-    plt.plot(original[:,0], original[:,1], '.', label='original')
+    plot_pos(dr=final, orig=original)
     plt.savefig("matched_drone_pos.png")

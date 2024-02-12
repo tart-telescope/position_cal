@@ -31,13 +31,6 @@ if __name__=="__main__":
         help="Template image of a single antenna.",
     )
     
-    # Draw a line on gimp one meter long
-    parser.add_argument(
-        "--pixels-per-meter",
-        type=float,
-        required=True,
-        help="Number of pixels per meter.",
-    )
     
     ARGS = parser.parse_args()
     
@@ -84,8 +77,8 @@ if __name__=="__main__":
         y = pt[1] + h/2
         
         
-        x_m = x/ARGS.pixels_per_meter
-        y_m = y/ARGS.pixels_per_meter
+        x_m = x
+        y_m = y
         
         
         print(f"{i}: {best} {x}, {y} {x_m}, {y_m}")
@@ -103,7 +96,7 @@ if __name__=="__main__":
         print(x, -y)
         result.append([x, -y])
         
-    out_json = {"antenna_positions": result}
+    out_json = {"antenna_positions_pixels": result}
     with open(ARGS.outfile, "w") as fp:
         json.dump(out_json, fp, indent=4, separators=(",", ": "))
 
