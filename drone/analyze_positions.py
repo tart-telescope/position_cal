@@ -5,14 +5,18 @@ import scipy
 import numpy as np
 from matplotlib import pyplot as plt
 
-def rotate(p, theta):
-    
-    x,y = p
-    r = np.sqrt(x**2 + y**2)
-    th = np.arctan2(y,x)
-    x_new = r*np.cos(th + theta)
-    y_new = r*np.sin(th + theta)
-    return [x_new, y_new]
+def rotate(point, degrees):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    angle = np.radians(degrees)
+    px, py = point
+
+    qx = np.cos(angle) * (px) - np.sin(angle) * (py)
+    qy = np.sin(angle) * (px) + np.cos(angle) * (py)
+    return [qx, qy]
 
 def r_all(v, theta):
     return np.array([rotate(p, theta) for p in v])
@@ -21,15 +25,18 @@ def translate_all(v, delta):
     return np.array([p + delta for p in v])
 
 
-
+def r_squared(_a, _b):
+    x_0, y_0 = _a
+    x_p, y_p = _b
+    return (x_p-x_0)**2 + (y_p-y_0)**2
+        
 def find_closest(_p, ref):
     ## Find closest point in ref to p
     i_best = 0
     x_p, y_p = _p
     r_best = 9e99
     for i, orig in enumerate(ref):
-        x_0, y_0 = orig
-        r2 = (x_p-x_0)**2 + (y_p-y_0)**2
+        r2 = r_squared(_p, orig)
         if r2 < r_best:
             r_best = r2
             i_best = i
@@ -47,6 +54,8 @@ def best_permute(v, ref):
 def plot_pos(dr, orig):
     plt.plot(dr[:,0], dr[:,1], 'x', label='drone')
     plt.plot(orig[:,0], orig[:,1], '.', label='original')
+    # for p in dr:
+    #     plt.circle()
     plt.grid(True)
     plt.legend()
     plt.show()
@@ -105,14 +114,14 @@ if __name__=="__main__":
     # print(original)
     
 
-    ## Find the rotation that matches best
+    ## Find the rotation that matches best (the angle that the original must be rotated to match the drone)
     
     def f_min(x_deg):
         ret = 0.0
-        _drone_r = r_all(drone, np.radians(x_deg))
+        _drone_r = r_all(original, x_deg)
         
         for p in _drone_r:
-            i_best, r_best = find_closest(p, original)
+            i_best, r_best = find_closest(p, drone)
             ret += r_best
             
         return ret
@@ -120,24 +129,24 @@ if __name__=="__main__":
     # for th in np.linspace(-30,30,100):
     #     print(f"{th}, {f_min(th)}")
 
-    ret = scipy.optimize.minimize(f_min, -40, method="BFGS", bounds=(-33,33))
+    ret = scipy.optimize.minimize(f_min, 40, method="BFGS", bounds=(-33,33))
     print(ret)
 
     angle = ret.x[0]
 
-    drone_r = r_all(drone, np.radians(angle))
+    original_r = r_all(original, angle)
     print(f"Angle between drone and original = {angle} degrees")
-    plot_pos(dr=drone_r, orig=original)
+    plot_pos(dr=drone, orig=original_r)
 
     
-    ## Find the translation that matches best to the rotated
+    ## Find the translation that matches best to the rotated original (original_r)
     
     def t_min(_x):
         ret = 0.0
-        _drone_t = translate_all(drone_r,_x)
+        _drone_t = translate_all(original_r,_x)
         
         for p in _drone_t:
-            i_best, r_best = find_closest(p, original)
+            i_best, r_best = find_closest(p, drone)
             ret += r_best
             
         return ret
@@ -150,19 +159,29 @@ if __name__=="__main__":
     print(ret)
 
     translate = ret.x
-    drone_t = translate_all(drone_r, translate)
-    print(f"Translation between drone and original = {translate} degrees")
-    plot_pos(dr=drone_t, orig=original)
+    original_rt = translate_all(original_r, translate)
+    print(f"Translation between drone and original = {translate} m")
+    plot_pos(dr=drone, orig=original_rt)
 
-    # Now find the permutation that matches
-    p_best = best_permute(drone_t, r_all(original, -angle))
-    print(p_best)
-    print(original[0])
+    # Now find the permutation that matches best the rotated original to the drone
+    p_best = best_permute(original_rt, drone)
     
-    final = ([list(drone_t[p]) for p in p_best])
+    print(p_best)
+    print(original_rt[0])
+    print(drone[p_best[0]])
+    
+    # Now reconstruct in the original frame of reference, the drone measurements
+    
+    drone_r = r_all(drone, -angle)
+    drone_rt = translate_all(drone_r, -translate)
+    
+    final = ([list(drone_rt[p]) for p in p_best])
     print(final)
 
-    out_json = {"antenna_positions": final}
+    residuals = [np.sqrt(r_squared(p, o)) for p,o in zip(final, original)]
+    out_json = {"antenna_positions": final,
+                "residuals": residuals}
+    
     with open(ARGS.outfile, "w") as fp:
         json.dump(out_json, fp, indent=4, separators=(",", ": "))
 
