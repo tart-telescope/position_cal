@@ -175,12 +175,13 @@ if __name__=="__main__":
     drone_r = r_all(drone, -angle)
     drone_rt = translate_all(drone_r, -translate)
     
-    final = ([list(drone_rt[p]) for p in p_best])
+    final = ([(list(drone_rt[p])) for p in p_best])
     print(final)
 
     residuals = [np.sqrt(r_squared(p, o)) for p,o in zip(final, original)]
-    out_json = {"antenna_positions": final,
-                "residuals": residuals}
+    out_json = {"antenna_positions": [p + [0.0] for p in final],
+                "residuals": residuals,
+                "pixels_per_meter": ARGS.pixels_per_meter}
     
     with open(ARGS.outfile, "w") as fp:
         json.dump(out_json, fp, indent=4, separators=(",", ": "))
