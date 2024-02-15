@@ -5,6 +5,7 @@ import scipy
 import numpy as np
 from matplotlib import pyplot as plt
 
+
 def rotate(point, degrees):
     """
     Rotate a point counterclockwise by a given angle around a given origin.
@@ -18,8 +19,10 @@ def rotate(point, degrees):
     qy = np.sin(angle) * (px) + np.cos(angle) * (py)
     return [qx, qy]
 
+
 def r_all(v, theta):
     return np.array([rotate(p, theta) for p in v])
+
 
 def translate_all(v, delta):
     return np.array([p + delta for p in v])
@@ -29,9 +32,10 @@ def r_squared(_a, _b):
     x_0, y_0 = _a
     x_p, y_p = _b
     return (x_p-x_0)**2 + (y_p-y_0)**2
-        
+
+
 def find_closest(_p, ref):
-    ## Find closest point in ref to p
+    # Find closest point in ref to p
     i_best = 0
     x_p, y_p = _p
     r_best = 9e99
@@ -40,9 +44,10 @@ def find_closest(_p, ref):
         if r2 < r_best:
             r_best = r2
             i_best = i
-    
+
     return i_best, r_best
-    
+
+
 def best_permute(v, ref):
     ret = []
     for p in v:
@@ -61,7 +66,7 @@ def plot_pos(dr, orig):
     plt.show()
 
 if __name__=="__main__":
-    
+
     parser = argparse.ArgumentParser(
         description="Analyze the positions and match antennas.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -84,6 +89,13 @@ if __name__=="__main__":
         help="Output file for matched antenna positions.",
     )
 
+    parser.add_argument(
+        "--orientation", nargs='+',
+        required=False,
+        default=[0, 0],
+        help="Array orientation [ant_num, angle].",
+    )
+
     # Draw a line on gimp one meter long
     parser.add_argument(
         "--pixels-per-meter",
@@ -93,37 +105,39 @@ if __name__=="__main__":
     )
 
     ARGS = parser.parse_args()
+    
+    orient_ant, orient_degrees = ARGS.orientation
+    orient_ant = int(orient_ant)
+    orient_degrees = float(orient_degrees)
+
+    print(f"Global orientation ant[{orient_ant}] = {orient_degrees} deg")
 
     # Opening JSON file
     with open(ARGS.drone) as f:
         drone = json.load(f)["antenna_positions_pixels"]
-        
+
         drone = np.array(drone)
         mu = np.mean(drone, axis=0)
         drone = (drone - mu)/ARGS.pixels_per_meter
 
-        
     with open(ARGS.original) as f:
         original = json.load(f)
         original = np.array(original)[:,0:2]
         mu = np.mean(original, axis=0)
         original = original - mu
-        
 
     print(drone)
     # print(original)
-    
 
-    ## Find the rotation that matches best (the angle that the original must be rotated to match the drone)
-    
+
+    # Find the rotation that matches best (the angle that the original must be rotated to match the drone)
+
     def f_min(x_deg):
         ret = 0.0
         _drone_r = r_all(original, x_deg)
-        
         for p in _drone_r:
             i_best, r_best = find_closest(p, drone)
             ret += r_best
-            
         return ret
 
     # for th in np.linspace(-30,30,100):
@@ -171,10 +185,22 @@ if __name__=="__main__":
     print(drone[p_best[0]])
     
     # Now reconstruct in the original frame of reference, the drone measurements
-    
     drone_r = r_all(drone, -angle)
     drone_rt = translate_all(drone_r, -translate)
+
+    # Global Orientation 
+    print(f"Global orientation ant[{orient_ant}] = {orient_degrees} deg")
+    ref_p = drone_rt[orient_ant]
+    actual_angle = np.degrees(np.arctan2(ref_p[1], ref_p[0]))
+    print(f"Actual angle drone_rt[{orient_ant}] = {actual_angle} deg")
     
+    delta_theta = orient_degrees - actual_angle
+    drone_rt = r_all(drone_rt, delta_theta)
+
+    ref_p = drone_rt[orient_ant]
+    actual_angle = np.degrees(np.arctan2(ref_p[1], ref_p[0]))
+    print(f"Actual angle drone_rt[{orient_ant}] = {actual_angle} deg")
+
     final = ([list(drone_rt[p]) for p in p_best])
     print(final)
 
