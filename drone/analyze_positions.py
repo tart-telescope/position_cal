@@ -217,6 +217,8 @@ if __name__=="__main__":
     plot_pos(dr=np.array(drone_permuted), orig=original, labels=['drone_permuted', 'original'])
 
     residuals = [np.sqrt(r_squared(p, o)) for p,o in zip(drone_permuted, original)]
+    total = np.sum(residuals)
+    print(f"Total residual {total}")
 
     # Global Orientation 
     print(f"Global orientation ant[{orient_ant}] = {orient_degrees} deg")
