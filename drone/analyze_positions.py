@@ -165,7 +165,8 @@ if __name__=="__main__":
     # for th in np.linspace(-30,30,100):
     #     print(f"{th}, {f_min(th)}")
 
-    ret = scipy.optimize.minimize(f_min, 40, method="BFGS", bounds=(-33,33))
+    bounds = scipy.optimize.Bounds(-33.0,33.0)
+    ret = scipy.optimize.minimize(f_min, 40, method="BFGS", bounds=bounds)
     print(ret)
 
     angle = ret.x[0]
