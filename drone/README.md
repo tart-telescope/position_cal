@@ -7,7 +7,10 @@ This is the easiest way to work out the antennas positions. A single image is ca
 
 ## Image Lens Correction
 
-Use darktable to correct the lens for rectilinear.
+Use darktable to correct the lens for rectilinear. This will need a known lens on the drone. Basic instructions:
+
+* Open Darktable and add the drone image
+* Lens correction should be automatically applied (I think) for the mini 4 pro.
 
 ## Run the antenna finder
 
