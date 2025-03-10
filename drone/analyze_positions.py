@@ -143,7 +143,7 @@ if __name__=="__main__":
         drone = (drone - mu)/ARGS.pixels_per_meter
 
     with open(ARGS.original) as f:
-        original = json.load(f)
+        original = json.load(f)["antenna_positions"]
         original = np.array(original)[:,0:2]
         mu = np.mean(original, axis=0)
         original = original - mu
