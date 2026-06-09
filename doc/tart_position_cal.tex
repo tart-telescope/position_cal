@@ -27,7 +27,12 @@ The calibration process must involve easy-to-make measurements, and be robust to
 
 \section{Method}
 
-The process involves measuring two distances. The first are the {\em radial distances} between the phase-centre and the centre of each antenna. There are 24 radial distance measurements $r_i$. The second measurements are the pairwise distances between each pair of antennas. There are $\frac{1}{2} N (N-1)$ unique pairs of antennas for an array with $N$ antennas. For the TART there are 276 pairwise distances $\delta_{ij}$ between antennas $i$ and $j$. As the measurements do not constrain the global rotation of the array, it is assumed that the direction between the phase centre and one of the antennas is known. This direction is the measured angle between one antenna and geographic North.
+The process involves measuring two kinds of distances. The first are the {\em radial distances} between the phase-centre and the centre of each antenna. There are 24 radial distance measurements $r_i$. The second measurements are the pairwise distances between each pair of antennas. There are $\frac{1}{2} N (N-1)$ unique pairs of antennas for an array with $N$ antennas. For the TART there are 276 pairwise distances $\delta_{ij}$ between antennas $i$ and $j$. As the measurements do not constrain the global rotation of the array, it is assumed that the direction between the phase centre and one of the antennas is known. This direction is the measured angle between one antenna and geographic North.
+
+\begin{figure}
+ \includegraphics[width=\linewidth]{fig/spreadsheet.png}
+ \caption{Spreadsheet with the measurements from a TART antenna array. The highlighted entry shows the distance in mm, between antenna 17, and antenna 8. }
+\end{figure}
 
 The purpose of the algorithm is to estimate the 24 antenna positions in the $x-y$ plane that are most consistent with the measurements.
 
@@ -36,9 +41,30 @@ The purpose of the algorithm is to estimate the 24 antenna positions in the $x-y
 Given a set, $x,y$ of 24 antenna positions, and the $r_i, \delta_{ij}$, we form a least-squares estimator
 
 \begin{eqnarray}
- L_{}(x, y, r, \delta) & = & \sum_{i=1}^{N} \left( r_i - \sqrt{x_{i,0}^2 + y_i^2}  \right)^2 \nonumber \\
+ L_{}(x, y) & = & L_r(x,y) + L_{ij}(x,y) \\
+ & = & \sum_{i=1}^{N} \left( r_i - \sqrt{x_{i,0}^2 + y_i^2}  \right)^2 \nonumber \\
  & + & \sum_{i,j=1}^{N} \left( \delta_{ij} - \sqrt{(x_i - x_j)^2 + (y_i - y_j^2}  \right)^2
 \end{eqnarray}
+
+Where one set of residuals corresponds to the radius measurements $r_i$, and the other set of residuals corresponds to the measured distances $\delta_{ij}$ between antennas.
+
+\subsection{Algorithm}
+
+The algorithm starts with a set of {\em initial estimates} of $x_i, y_i$, the coordinates of the $i$th antenna. From these, the simulated measurements $r^s_i = \sqrt{x_i^2 + y_i^2}$, and $\delta^s_{ij} = \sqrt{(x_i - x_j)^2 + (y_i - y_j^2}$ are calculated. The least squares estimator $L(x,y)$ is then minimized (as a function of $x_i, y_i$) to find the set of antenna positions that produce simulated measurements that are as close as possible to the actual measurements.
+
+\begin{figure}
+ \includegraphics[width=\linewidth]{fig/final_positions.png}
+ \caption{Initial position estimates, and the final positions for the TART antenna array after calibration.}
+\end{figure}
+
+\subsection{Residuals}
+
+The differences between the simulated measurements of the calibrated positions, and the actual measurements made are called residuals. If one or more of the residuals are large, it usually indicates a measurement error, and these large residuals can be used to re-check just a few of the measurements.
+
+\begin{figure}
+ \includegraphics[width=\linewidth]{fig/residual_histogram.png}
+ \caption{The histogram of the residuals, showing that the calibrated positions, very closely match the measurements. The 90th percentile of residuals is 1.53 mm which indicates that we know the antenna positions to within a few millimeters.}
+\end{figure}
 
 
 \end{document}
